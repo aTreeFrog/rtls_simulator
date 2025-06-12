@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: mqtt-broker
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+    networks:
+      - rtls-network
+    restart: unless-stopped
+    healthcheck:
+      # Simpler health check that works more reliably
+      test: ["CMD-SHELL", "nc -z localhost 1883 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  rtls-publisher:
+    build: .
+    container_name: rtls-publisher
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    volumes:
+      - ./config:/app/config
+    environment:
+      - MQTT_BROKER=mosquitto
+    networks:
+      - rtls-network
+    restart: unless-stopped
+    command: python3 -m src.main -c /app/config/docker-config.yaml
+
+  roscore:
+    image: ros:noetic-ros-core
+    container_name: roscore
+    command: roscore
+    networks:
+      - rtls-network
+
+  rtls-subscriber:
+    build: .
+    container_name: rtls-subscriber
+    depends_on:
+      - mosquitto
+      - roscore
+    environment:
+      - MQTT_BROKER=mosquitto
+      - ROS_MASTER_URI=http://roscore:11311
+    networks:
+      - rtls-network
+    command: python3 examples/subscriber_example.py --broker mosquitto
+
+  # Optional: MQTT Web UI for monitoring
+  mqtt-explorer:
+    image: smeagolworms4/mqtt-explorer
+    container_name: mqtt-explorer
+    ports:
+      - "4000:4000"
+    environment:
+      - HTTP_PORT=4000
+      - CONFIG_PATH=/mqtt-explorer/config
+    volumes:
+      - ./mqtt-explorer-config:/mqtt-explorer/config
+    depends_on:
+      - mosquitto
+    networks:
+      - rtls-network
+
+networks:
+  rtls-network:
+    driver: bridge
+
+volumes:
+  mosquitto-data:
+  mosquitto-log:

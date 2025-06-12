@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: mqtt-broker
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - rtls-network
+    # Remove health check for now to debug
+    restart: unless-stopped
+
+  rtls-publisher:
+    build: .
+    container_name: rtls-publisher
+    depends_on:
+      - mosquitto
+    volumes:
+      - ./config:/app/config
+    environment:
+      - MQTT_BROKER=mosquitto
+    networks:
+      - rtls-network
+    restart: unless-stopped
+    # Add delay to ensure mosquitto is ready
+    command: sh -c "sleep 10 && python -m src.main -c /app/config/docker-config.yaml"
+
+  rtls-subscriber:
+    build: .
+    container_name: rtls-subscriber
+    depends_on:
+      - mosquitto
+    environment:
+      - MQTT_BROKER=mosquitto
+    networks:
+      - rtls-network
+    restart: unless-stopped
+    # Add delay to ensure mosquitto is ready
+    command: sh -c "sleep 15 && python examples/subscriber_example.py -b mosquitto"
+
+networks:
+  rtls-network:
+    driver: bridge

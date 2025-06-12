@@ -1,0 +1,90 @@
+# Docker-specific configuration
+# This overrides the default localhost settings
+
+mqtt:
+  broker: "mosquitto"  # Docker service name
+  port: 1883
+  username: ""
+  password: ""
+  client_id: "rtls_mock_publisher"
+  keepalive: 60
+  qos: 1
+
+rtls:
+  update_interval: 1.0  # seconds
+  movement:
+    max_speed: 5.0  # meters per second
+    acceleration: 0.5  # meters per second^2
+    turn_rate: 45.0  # degrees per second
+  
+  zones:
+    - id: "warehouse_a"
+      name: "Warehouse A"
+      bounds:
+        x_min: 0
+        x_max: 100
+        y_min: 0
+        y_max: 50
+        z_min: 0
+        z_max: 10
+    
+    - id: "loading_dock"
+      name: "Loading Dock"
+      bounds:
+        x_min: 100
+        x_max: 120
+        y_min: 10
+        y_max: 40
+        z_min: 0
+        z_max: 5
+    
+    - id: "office_area"
+      name: "Office Area"
+      bounds:
+        x_min: 0
+        x_max: 30
+        y_min: 50
+        y_max: 80
+        z_min: 0
+        z_max: 3
+  
+  tags:
+    - id: "tag_001"
+      name: "Forklift 1"
+      type: "vehicle"
+      initial_position:
+        x: 50
+        y: 25
+        z: 0
+      battery: 100
+    
+    - id: "tag_002"
+      name: "Worker 1"
+      type: "person"
+      initial_position:
+        x: 10
+        y: 10
+        z: 0
+      battery: 95
+    
+    - id: "tag_003"
+      name: "Asset Pallet 1"
+      type: "asset"
+      initial_position:
+        x: 80
+        y: 40
+        z: 0
+      battery: 100
+    
+    - id: "tag_004"
+      name: "Worker 2"
+      type: "person"
+      initial_position:
+        x: 110
+        y: 25
+        z: 0
+      battery: 87
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
